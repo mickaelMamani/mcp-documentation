@@ -1,0 +1,319 @@
+# Retrieval benchmark question set (ARCHITECTURE §9). Versioned with the server: any change to the
+# analyzers, boosts, synonyms, tool descriptions or doc format must be accompanied by its result.
+#
+# kind:
+#   intent        the user describes a task, not an endpoint         -> search_endpoints
+#   parameter     the user asks about one field of one endpoint      -> search_endpoints (+ get_endpoint)
+#   example       the user wants a code sample                       -> search_endpoints
+#   crosscutting  no single endpoint answers it                      -> search_docs
+#
+# expected          operationIds accepted in the top 3 of search_endpoints.
+# expected_chunk    section that get_endpoint must return for a parameter question.
+# expected_sections breadcrumb fragments accepted in the top 3 of search_docs.
+#
+# French questions are reformulated by the fixed FR -> EN table of FrenchToEnglish.cs, which
+# simulates what the client LLM does before calling a tool.
+
+- id: q001
+  question: "Comment requêter les folios ?"
+  expected: [SearchFolio, GetFolioById]
+  kind: intent
+
+- id: q002
+  question: "How do I find portfolios by owner and currency?"
+  expected: [SearchFolio]
+  kind: intent
+
+- id: q003
+  question: "Get one folio when I already know its id"
+  expected: [GetFolioById]
+  kind: intent
+
+- id: q004
+  question: "Comment récupérer les positions d'un portefeuille ?"
+  expected: [GetFolioPositions]
+  kind: intent
+
+- id: q005
+  question: "List the volatility surfaces available for an underlying"
+  expected: [ListSurfaces]
+  kind: intent
+
+- id: q006
+  question: "Comment lire une nappe de volatilité avec sa grille ?"
+  expected: [GetSurface, ListSurfaces]
+  kind: intent
+
+- id: q007
+  question: "Apply a manual bump to a volatility surface"
+  expected: [Plug]
+  kind: intent
+
+- id: q008
+  question: "Comment annuler un plug appliqué sur une nappe ?"
+  expected: [DeletePlug]
+  kind: intent
+
+- id: q009
+  question: "Recalibrate a surface from the latest market quotes"
+  expected: [Recalibrate]
+  kind: intent
+
+- id: q010
+  question: "Compute the implied volatility of a strike and a maturity"
+  expected: [ComputeImpliedVol]
+  kind: intent
+
+- id: q011
+  question: "Comment créer un folio pour un desk et une devise ?"
+  expected: [CreateFolio]
+  kind: intent
+
+- id: q012
+  question: "Close a folio at the end of its life"
+  expected: [CloseFolio]
+  kind: intent
+
+- id: q013
+  question: "Comment clôturer un portefeuille et figer ses positions ?"
+  expected: [CloseFolio]
+  kind: intent
+
+- id: q014
+  question: "Search folios by tag or by desk to build a shortlist"
+  expected: [SearchFolio]
+  kind: intent
+
+- id: q015
+  question: "Get the aggregated delta and vega exposure of a portfolio"
+  expected: [GetFolioById]
+  kind: intent
+
+- id: q016
+  question: "Look up the owner, currency and status of a folio"
+  expected: [GetFolioById]
+  kind: intent
+
+- id: q017
+  question: "Query the holdings of a folio as of a past business date"
+  expected: [GetFolioPositions]
+  kind: intent
+
+- id: q018
+  question: "quel paramètre pour le tenor sur Plug"
+  expected: [Plug]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q019
+  question: "What is the strikeType parameter of Plug?"
+  expected: [Plug]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q020
+  question: "Which parameter filters the grid by tenors on GetSurface?"
+  expected: [GetSurface]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q021
+  question: "How do I page through the positions of a folio?"
+  expected: [GetFolioPositions]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q022
+  question: "quel paramètre pour la devise à la création d'un folio"
+  expected: [CreateFolio]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q023
+  question: "What does keepPlugs do on Recalibrate?"
+  expected: [Recalibrate]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q024
+  question: "Which parameter selects the business date on GetFolioById?"
+  expected: [GetFolioById]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q025
+  question: "quel paramètre pour l'identifiant de nappe sur Recalibrate"
+  expected: [Recalibrate]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q026
+  question: "Which criteria can I send to search folios?"
+  expected: [SearchFolio]
+  expected_chunk: Parameters
+  kind: parameter
+
+- id: q027
+  question: "Give me a Python example to apply a plug on a surface"
+  expected: [Plug]
+  kind: example
+
+- id: q028
+  question: "exemple C# pour rechercher des folios"
+  expected: [SearchFolio]
+  kind: example
+
+- id: q029
+  question: "Python snippet to compute the implied volatility"
+  expected: [ComputeImpliedVol]
+  kind: example
+
+- id: q030
+  question: "exemple d'appel pour supprimer un plug"
+  expected: [DeletePlug]
+  kind: example
+
+- id: q031
+  question: "C# example to list the volatility surfaces"
+  expected: [ListSurfaces]
+  kind: example
+
+- id: q032
+  question: "exemple python pour récupérer les positions d'un folio"
+  expected: [GetFolioPositions]
+  kind: example
+
+- id: q033
+  question: "Comment obtenir un jeton d'authentification ?"
+  expected_sections: ["Federer API › Authentication"]
+  kind: crosscutting
+
+- id: q034
+  question: "How does pagination work on this API?"
+  expected_sections: ["Federer API › Pagination"]
+  kind: crosscutting
+
+- id: q035
+  question: "What are the rate limits and how do I back off?"
+  expected_sections: ["Federer API › Rate limits"]
+  kind: crosscutting
+
+- id: q036
+  question: "Quel est le format des erreurs de la plateforme ?"
+  expected_sections: ["Federer API › Errors"]
+  kind: crosscutting
+
+- id: q037
+  question: "Which base URL should I use on uat?"
+  expected_sections: ["Federer API › Environments and base URLs"]
+  kind: crosscutting
+
+- id: q038
+  question: "How is a deprecated endpoint signalled?"
+  expected_sections: ["Federer API › Versioning and deprecation"]
+  kind: crosscutting
+
+- id: q039
+  question: "quels scopes pour écrire sur les folios"
+  expected_sections: ["Folio › Authentication & scopes", "Federer API › Authentication"]
+  kind: crosscutting
+
+- id: q040
+  question: "What is the typical workflow to close a folio?"
+  expected_sections: ["Folio › Typical workflow", "Folio › Use cases"]
+  kind: crosscutting
+
+# --- Terse queries (1 to 3 tokens) -------------------------------------------------------------
+# Blind spot found while testing the published server: the tool description tells the model to send
+# "entity + action", yet every question above is a full sentence. These reproduce what a coding
+# agent actually sends. `terse: true` lets the benchmark report them separately.
+
+- id: q041
+  question: "list folios"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: q042
+  question: "folio list"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: q043
+  question: "search folios"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: q044
+  question: "folios"
+  expected: [SearchFolio, GetFolioById]
+  kind: intent
+  terse: true
+
+- id: q045
+  question: "folio positions"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: q046
+  question: "folio exposures"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: q047
+  question: "close folio"
+  expected: [CloseFolio]
+  kind: intent
+  terse: true
+
+- id: q048
+  question: "create folio"
+  expected: [CreateFolio]
+  kind: intent
+  terse: true
+
+- id: q049
+  question: "list surfaces"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: q050
+  question: "surfaces"
+  expected: [ListSurfaces, GetSurface]
+  kind: intent
+  terse: true
+
+- id: q051
+  question: "surface grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: q052
+  question: "plug surface"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: q053
+  question: "delete plug"
+  expected: [DeletePlug]
+  kind: intent
+  terse: true
+
+- id: q054
+  question: "recalibrate surface"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: q055
+  question: "implied vol"
+  expected: [ComputeImpliedVol]
+  kind: intent
+  terse: true

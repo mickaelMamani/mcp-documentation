@@ -1,0 +1,310 @@
+# Held-out terse query set for the retrieval sweep (ARCHITECTURE §9).
+#
+# NOT authored by hand. Five independent agents read only docs/, knowing nothing of the retrieval
+# fix; an adversarial reviewer per angle filtered their proposals; a mechanical check then dropped
+# anything over 3 words, carrying punctuation, whose token IS an operationId (that path is already
+# covered by the x10 exact-match boost and would not test ranking), or answering with the
+# deprecated ListFolios.
+#
+# Purpose: keep the tuning honest. A configuration cannot be fitted to questions its author never
+# saw. Do not hand-edit this file to make a configuration look better - regenerate it.
+
+- id: h001
+  question: "surfaces"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: h002
+  question: "surface grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h003
+  question: "manual bump"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: h004
+  question: "remove override"
+  expected: [DeletePlug]
+  kind: intent
+  terse: true
+
+- id: h005
+  question: "market quotes"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: h006
+  question: "folios"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: h007
+  question: "positions"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: h008
+  question: "exposure"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: h009
+  question: "new portfolio"
+  expected: [CreateFolio]
+  kind: intent
+  terse: true
+
+- id: h010
+  question: "archive portfolio"
+  expected: [CloseFolio]
+  kind: intent
+  terse: true
+
+- id: h011
+  question: "browse volatility surfaces"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: h012
+  question: "fetch surface grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h013
+  question: "apply vol bump"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: h014
+  question: "refit surface"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: h015
+  question: "interpolate vol point"
+  expected: [ComputeImpliedVol]
+  kind: intent
+  terse: true
+
+- id: h016
+  question: "list portfolios"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: h017
+  question: "fetch portfolio exposures"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: h018
+  question: "list holdings"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: h019
+  question: "create new portfolio"
+  expected: [CreateFolio]
+  kind: intent
+  terse: true
+
+- id: h020
+  question: "delete portfolio"
+  expected: [CloseFolio]
+  kind: intent
+  terse: true
+
+- id: h021
+  question: "revalue option positions"
+  expected: [GetFolioPositions, ComputeImpliedVol]
+  kind: intent
+  terse: true
+
+- id: h022
+  question: "assetClass filter"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: h023
+  question: "tenors filter grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h024
+  question: "shift vol points"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: h025
+  question: "recompute false"
+  expected: [DeletePlug]
+  kind: intent
+  terse: true
+
+- id: h026
+  question: "keepPlugs"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: h027
+  question: "applyPlugs"
+  expected: [ComputeImpliedVol]
+  kind: intent
+  terse: true
+
+- id: h028
+  question: "strikeType delta"
+  expected: [ComputeImpliedVol, Plug]
+  kind: intent
+  terse: true
+
+- id: h029
+  question: "createdFrom createdTo"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: h030
+  question: "delta vega exposures"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: h031
+  question: "instrumentType option"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: h032
+  question: "currency immutable"
+  expected: [CreateFolio]
+  kind: intent
+  terse: true
+
+- id: h033
+  question: "closeDate reason"
+  expected: [CloseFolio]
+  kind: intent
+  terse: true
+
+- id: h034
+  question: "available vol surfaces"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: h035
+  question: "surface tenor grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h036
+  question: "active plugs"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h037
+  question: "interpolate strike"
+  expected: [ComputeImpliedVol]
+  kind: intent
+  terse: true
+
+- id: h038
+  question: "bump atm vol"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: h039
+  question: "refit from quotes"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: h040
+  question: "list all folios"
+  expected: [SearchFolio]
+  kind: intent
+  terse: true
+
+- id: h041
+  question: "aggregated folio exposure"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: h042
+  question: "portfolio holdings"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: h043
+  question: "delete folio"
+  expected: [CloseFolio]
+  kind: intent
+  terse: true
+
+- id: h044
+  question: "bump volatility"
+  expected: [Plug]
+  kind: intent
+  terse: true
+
+- id: h045
+  question: "stale calibration"
+  expected: [Recalibrate]
+  kind: intent
+  terse: true
+
+- id: h046
+  question: "available surfaces"
+  expected: [ListSurfaces]
+  kind: intent
+  terse: true
+
+- id: h047
+  question: "tenor strike grid"
+  expected: [GetSurface]
+  kind: intent
+  terse: true
+
+- id: h048
+  question: "vega exposure"
+  expected: [GetFolioById]
+  kind: intent
+  terse: true
+
+- id: h049
+  question: "option legs"
+  expected: [GetFolioPositions]
+  kind: intent
+  terse: true
+
+- id: h050
+  question: "open new book"
+  expected: [CreateFolio]
+  kind: intent
+  terse: true

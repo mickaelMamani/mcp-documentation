@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>ApiDocs.Mcp.Stdio</AssemblyName>
+    <RootNamespace>ApiDocs.Mcp.Stdio</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ApiDocs.Application\ApiDocs.Application.csproj" />
+    <ProjectReference Include="..\ApiDocs.Infrastructure\ApiDocs.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ApiDocs.Tests" />
+  </ItemGroup>
+
+</Project>

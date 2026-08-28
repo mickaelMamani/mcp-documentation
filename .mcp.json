@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "api-docs": {
+      "command": "dotnet",
+      "args": [".mcp-server/ApiDocs.Mcp.Stdio.dll", "--docs", "./docs"]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ApiDocs.Domain\ApiDocs.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ApiDocs.Application\ApiDocs.Application.csproj" />
+    <ProjectReference Include="..\..\src\ApiDocs.Infrastructure\ApiDocs.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ApiDocs.Mcp.Stdio\ApiDocs.Mcp.Stdio.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="benchmark\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+# Business synonyms of ARCHITECTURE §4.2. One equivalence group per line, comma separated.
+# Applied before stemming, on lowercased and folded tokens. Lines starting with # are ignored.
+# Any change here must be accompanied by the retrieval benchmark result (ARCHITECTURE §9).
+
+search, query, find, lookup, retrieve
+plug, bump, shift, override
+folio, portfolio
+vol, volatility
+position, holding
+create, add
+close, terminate
+delete, remove
+list, enumerate
+recalibrate, calibrate, calibration
+implied, interpolated
+tenor, maturity, expiry
+underlying, asset
+owner, desk
+scope, permission, entitlement
+paging, pagination
+error, failure

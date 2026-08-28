@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ApiDocs.Domain\ApiDocs.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ApiDocs.Infrastructure" />
+    <InternalsVisibleTo Include="ApiDocs.Mcp.Stdio" />
+    <InternalsVisibleTo Include="ApiDocs.Tests" />
+  </ItemGroup>
+
+</Project>

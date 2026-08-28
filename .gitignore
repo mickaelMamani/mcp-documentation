@@ -480,3 +480,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Standalone copy of the MCP server consumed by .mcp.json (see ARCHITECTURE ADR #19).
+# Rebuild with: dotnet publish src/ApiDocs.Mcp.Stdio -c Release -o .mcp-server
+.mcp-server/

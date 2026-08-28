@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ApiDocs.Application" />
+    <InternalsVisibleTo Include="ApiDocs.Infrastructure" />
+    <InternalsVisibleTo Include="ApiDocs.Mcp.Stdio" />
+    <InternalsVisibleTo Include="ApiDocs.Tests" />
+  </ItemGroup>
+
+</Project>
