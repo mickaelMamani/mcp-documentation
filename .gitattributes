@@ -3,3 +3,12 @@
 docs/**    text eol=lf
 specs/*.md text eol=lf
 *.md       text eol=lf
+
+# C# sources hold raw string literals ("""...""") whose content embeds the file's own line
+# endings: ServerInstructions, the empty-result messages of search_endpoints and search_docs,
+# and the validator test fixture. A CRLF checkout would change the bytes the MCP server emits
+# and would break fixtures compared against "\n" escapes, which are always LF.
+*.cs    text eol=lf
+
+# Benchmark data, versioned alongside the server like the corpus.
+*.yaml  text eol=lf

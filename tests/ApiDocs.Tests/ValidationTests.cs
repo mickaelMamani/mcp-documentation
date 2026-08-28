@@ -159,7 +159,15 @@ public sealed class ValidationTests(DocumentationFixture fixture)
         return issues;
     }
 
-    private const string EndpointFile =
+    /// <summary>
+    /// Normalised to LF. The fixture is a raw string literal, so it carries whatever line endings
+    /// the checkout produced, while every search string below uses "\n" escapes, which are always
+    /// LF. .gitattributes pins C# sources to LF; this keeps the test honest if that ever relaxes.
+    /// </summary>
+    private static readonly string EndpointFile =
+        RawEndpointFile.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+    private const string RawEndpointFile =
         """
         ---
         formatVersion: "1.0"
