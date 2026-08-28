@@ -1,0 +1,133 @@
+{
+  "formatVersion": "1.0",
+  "platform": "Federer API",
+  "platformVersion": "2.3.0",
+  "generatedAt": "2026-08-28T10:00:00Z",
+  "language": "en",
+  "domains": [
+    {
+      "id": "volatility",
+      "name": "Volatility",
+      "summary": "Volatility surfaces: retrieval, plugging, calibration.",
+      "file": "volatility/_domain.md",
+      "endpoints": [
+        {
+          "operationId": "ListSurfaces",
+          "method": "GET",
+          "route": "/volatility/surfaces",
+          "summary": "List the volatility surfaces available for an underlying and a business date.",
+          "file": "volatility/list-surfaces.md",
+          "tags": ["surface", "catalog"],
+          "deprecated": false
+        },
+        {
+          "operationId": "GetSurface",
+          "method": "GET",
+          "route": "/volatility/surfaces/{surfaceId}",
+          "summary": "Get one volatility surface with its tenor and strike grid.",
+          "file": "volatility/get-surface.md",
+          "tags": ["surface"],
+          "deprecated": false
+        },
+        {
+          "operationId": "Plug",
+          "method": "POST",
+          "route": "/volatility/plug",
+          "summary": "Apply a plug (manual bump) to an existing volatility surface.",
+          "file": "volatility/plug.md",
+          "tags": ["surface", "calibration"],
+          "deprecated": false
+        },
+        {
+          "operationId": "DeletePlug",
+          "method": "DELETE",
+          "route": "/volatility/plugs/{plugId}",
+          "summary": "Delete a plug and restore the calibrated values of the surface.",
+          "file": "volatility/delete-plug.md",
+          "tags": ["surface", "calibration"],
+          "deprecated": false
+        },
+        {
+          "operationId": "Recalibrate",
+          "method": "POST",
+          "route": "/volatility/surfaces/{surfaceId}/recalibrate",
+          "summary": "Update a volatility surface by recalibrating it from the latest market quotes.",
+          "file": "volatility/recalibrate.md",
+          "tags": ["calibration"],
+          "deprecated": false
+        },
+        {
+          "operationId": "ComputeImpliedVol",
+          "method": "POST",
+          "route": "/volatility/implied-vol",
+          "summary": "Compute the implied volatility of a strike and maturity from a surface.",
+          "file": "volatility/compute-implied-vol.md",
+          "tags": ["pricing", "interpolation"],
+          "deprecated": false
+        }
+      ]
+    },
+    {
+      "id": "folio",
+      "name": "Folio",
+      "summary": "Folios (portfolios of positions): search, retrieval, lifecycle.",
+      "file": "folio/_domain.md",
+      "endpoints": [
+        {
+          "operationId": "SearchFolio",
+          "method": "POST",
+          "route": "/folios/search",
+          "summary": "Search folios by name, owner, currency or date criteria.",
+          "file": "folio/search-folio.md",
+          "tags": ["folio", "search"],
+          "deprecated": false
+        },
+        {
+          "operationId": "GetFolioById",
+          "method": "GET",
+          "route": "/folios/{folioId}",
+          "summary": "Get one folio with its header and aggregated exposures when the id is known.",
+          "file": "folio/get-folio-by-id.md",
+          "tags": ["folio"],
+          "deprecated": false
+        },
+        {
+          "operationId": "GetFolioPositions",
+          "method": "GET",
+          "route": "/folios/{folioId}/positions",
+          "summary": "Get the positions of a folio, with paging and instrument filters.",
+          "file": "folio/get-folio-positions.md",
+          "tags": ["folio", "positions"],
+          "deprecated": false
+        },
+        {
+          "operationId": "CreateFolio",
+          "method": "POST",
+          "route": "/folios",
+          "summary": "Create a folio for a given owner and currency.",
+          "file": "folio/create-folio.md",
+          "tags": ["folio", "lifecycle"],
+          "deprecated": false
+        },
+        {
+          "operationId": "CloseFolio",
+          "method": "POST",
+          "route": "/folios/{folioId}/close",
+          "summary": "Close a folio and freeze its positions.",
+          "file": "folio/close-folio.md",
+          "tags": ["folio", "lifecycle"],
+          "deprecated": false
+        },
+        {
+          "operationId": "ListFolios",
+          "method": "GET",
+          "route": "/folios",
+          "summary": "List the folios visible to the caller. Deprecated: use SearchFolio.",
+          "file": "folio/list-folios.md",
+          "tags": ["folio", "legacy"],
+          "deprecated": true
+        }
+      ]
+    }
+  ]
+}

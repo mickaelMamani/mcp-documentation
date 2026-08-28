@@ -1,0 +1,5 @@
+# The documentation corpus is a machine-read contract: DOC-FORMAT.md section 2 requires
+# UTF-8 without BOM and LF line endings. core.autocrlf must not rewrite them on checkout.
+docs/**    text eol=lf
+specs/*.md text eol=lf
+*.md       text eol=lf
