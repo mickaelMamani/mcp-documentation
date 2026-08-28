@@ -14,13 +14,15 @@ If something in this file contradicts those documents, the design documents win;
 ## POC scope
 
 In scope:
-- stdio transport only.
+- Two transports, one application: stdio (local, one server per developer machine) and Streamable HTTP (`/mcp`, shared production server).
 - Tools: `list_domains`, `search_endpoints`, `get_endpoint`, `search_docs`. Resources `endpoint://{operationId}` and `doc://…`.
 - Lexical retrieval with Lucene.NET (BM25). No embeddings, no reranker.
 - Fake documentation: 2 domains (`volatility`, `folio`), 4–6 endpoints each, plus `_domain.md` files and `_platform.md`, fully conforming to `DOC-FORMAT.md`.
 - Retrieval benchmark (xUnit) on a versioned question set.
 
-Out of scope (do not implement, do not scaffold): authentication/authorization, Streamable HTTP host, embeddings/vectors, reranking, `reindex` admin tool, persistence of the index, Aspire.
+Out of scope (do not implement, do not scaffold): authentication/authorization, embeddings/vectors, reranking, `reindex` admin tool, hot reload of the index, persistence of the index, Aspire.
+
+Authentication and hot reload are out of scope **by decision, not by oversight** (`ARCHITECTURE.md` ADR #24 and #25): access is closed off upstream of the application (VPN, mTLS, gateway), and a documentation update is picked up by restarting the service. Both decisions have a single hook point should they be revisited — do not pre-build for them.
 
 ## Repository layout
 
@@ -28,24 +30,29 @@ Out of scope (do not implement, do not scaffold): authentication/authorization, 
 ApiDocs.sln
 docs/                         # fake documentation (DOC-FORMAT.md compliant) — the data
 specs/                        # DOC-FORMAT.md, ARCHITECTURE.md
-.mcp-server/                  # published copy that .mcp.json runs — gitignored, rebuilt by dotnet publish
+.mcp-server/                  # published copy of the stdio host that .mcp.json runs — gitignored
+.mcp-server-http/             # published copy of the HTTP host, for local end-to-end tests — gitignored
 src/
   ApiDocs.Domain/             # entities, value objects — zero dependencies
   ApiDocs.Application/        # use cases + ports (interfaces)
-  ApiDocs.Infrastructure/     # Markdown source, Markdig chunker, Lucene index, snapshot provider
-  ApiDocs.Mcp.Stdio/          # host: Generic Host + ModelContextProtocol stdio, MCP tools/resources
+  ApiDocs.Infrastructure/     # Markdown source, Git checkout, Markdig chunker, Lucene index, snapshot provider
+  ApiDocs.Mcp/                # MCP surface shared by both hosts: tools, resources, ServerInstructions
+  ApiDocs.Mcp.Stdio/          # host: Generic Host + stdio transport — the developer loop
+  ApiDocs.Mcp.Http/           # host: ASP.NET Core + Streamable HTTP on /mcp — the production server
 tests/
   ApiDocs.Tests/              # unit + retrieval benchmark + tuning sweep
     benchmark/questions.yaml       # authored question set
     benchmark/heldout-terse.yaml   # held-out queries, generated — see ARCHITECTURE.md §9
 ```
 
-Dependency direction: `Mcp.Stdio → Application → Domain`, `Infrastructure → Application → Domain`. **Domain references nothing. Application references only Domain.** Any violation is a bug, even if it compiles. One deliberate exception: `Mcp.Stdio` also references `Infrastructure`, because the host is the composition root and is the only project allowed to know the implementations (`ARCHITECTURE.md` ADR #11). Do not "fix" it.
+Dependency direction: `Mcp.Stdio | Mcp.Http → Mcp → Application → Domain`, `Infrastructure → Application → Domain`. **Domain references nothing. Application references only Domain.** Any violation is a bug, even if it compiles. One deliberate exception: both hosts also reference `Infrastructure`, because a host is the composition root and is the only project allowed to know the implementations (`ARCHITECTURE.md` ADR #11). Do not "fix" it.
+
+The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health` endpoint. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
 
 ## Technology and packages
 
 - .NET 8 (`net8.0`), C# 12, `<Nullable>enable</Nullable>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<ImplicitUsings>enable</ImplicitUsings>`.
-- `ModelContextProtocol` (official C# SDK). Tools via `[McpServerToolType]` / `[McpServerTool]` / `[Description]`. Register with `AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly()` (verify exact API against the SDK docs — use the Context7 MCP with library `/modelcontextprotocol/csharp-sdk` when unsure).
+- `ModelContextProtocol` (official C# SDK). Tools via `[McpServerToolType]` / `[McpServerTool]` / `[Description]`. Register with `AddMcpServer().WithStdioServerTransport()`, and for the production host `ModelContextProtocol.AspNetCore` with `.WithHttpTransport(o => o.SessionMode = HttpServerSessionMode.Stateless)` plus `app.MapMcp("/mcp")` (verify exact API against the SDK docs — use the Context7 MCP with library `/modelcontextprotocol/csharp-sdk` when unsure).
 - `Lucene.Net`, `Lucene.Net.Analysis.Common` (4.8.x). `RAMDirectory`, `BM25Similarity`, per-field analyzers as specified in `ARCHITECTURE.md §4.2`. Queries are built with query objects (`BooleanQuery`, `TermQuery`, `PrefixQuery`, `FuzzyQuery`), **never** with a text query parser.
 - `Markdig` (+ YAML front matter extension), `YamlDotNet`, `System.Text.Json`.
 - `Microsoft.ML.Tokenizers` for token counting (`cl100k_base`), together with `Microsoft.ML.Tokenizers.Data.Cl100kBase`, which embeds the vocabulary: without it the tokenizer fetches it over the network at startup, which breaks the "no outbound call from the server" rule (`ARCHITECTURE.md` ADR #16).
@@ -89,10 +96,20 @@ Analyzer and boost values live in `LuceneOptions` and `RankingOptions`, not in c
 ```bash
 dotnet build
 dotnet test                                   # unit + validator + benchmark + tuning sweep
-dotnet run --project src/ApiDocs.Mcp.Stdio -- --docs ./docs        # dev loop
+dotnet run --project src/ApiDocs.Mcp.Stdio -- --docs ./docs        # stdio dev loop
 dotnet publish src/ApiDocs.Mcp.Stdio -c Release -o .mcp-server     # what .mcp.json runs
 npx @modelcontextprotocol/inspector dotnet .mcp-server/ApiDocs.Mcp.Stdio.dll --docs ./docs
+
+dotnet run --project src/ApiDocs.Mcp.Http                          # HTTP host, dev profile: local docs/ folder
+curl http://localhost:5080/health                                  # snapshot served + documentation revision
+
+dotnet publish src/ApiDocs.Mcp.Http -c Release -o .mcp-server-http  # copy to run while still building the solution
+dotnet .mcp-server-http/ApiDocs.Mcp.Http.dll --urls http://localhost:5080 --Docs:Source=Folder --Docs:Path=./docs
 ```
+
+Same trap as the stdio host, same fix: `dotnet run --project src/ApiDocs.Mcp.Http` holds `src/ApiDocs.Mcp.Http/bin/**` locked, so `dotnet build` and `dotnet test` fail for as long as it runs. Run the published copy instead when the server has to stay up while you keep working (`ARCHITECTURE.md` ADR #19). Note that `dotnet run` on a Web SDK project sets the working directory to the **project** folder, not the repository root — hence `Docs__Path=../../docs` in its launch profile.
+
+Debugging with F5 (Visual Studio / VS Code) uses `src/ApiDocs.Mcp.Stdio/Properties/launchSettings.json`, which sets the working directory to the repository root and passes `--docs ./docs`. Without it the debugger starts in `bin/Debug/net8.0`, `--docs` resolves to `bin/Debug/net8.0/docs`, and the host exits with `No manifest.json found` (`ARCHITECTURE.md` ADR #21). The path is always resolved against the working directory of the process, never against the binaries.
 
 Local Claude Code registration (`.mcp.json` at repo root, committed). It runs the **published copy**, not `dotnet run`: a live `dotnet run` holds `src/ApiDocs.Mcp.Stdio/bin/**` locked, so `dotnet build` and `dotnet test` fail for as long as a client is connected (`ARCHITECTURE.md` ADR #19). Re-run the `dotnet publish` above after changing code — `docs/` is read live from the repo root and only needs a server restart.
 
@@ -102,6 +119,37 @@ Local Claude Code registration (`.mcp.json` at repo root, committed). It runs th
     "api-docs": {
       "command": "dotnet",
       "args": [".mcp-server/ApiDocs.Mcp.Stdio.dll", "--docs", "./docs"]
+    }
+  }
+}
+```
+
+## Production host (`ApiDocs.Mcp.Http`)
+
+The documentation is centralised and changes on its own schedule, so the server fetches it: at startup it checks the configured Git reference out into a working copy, indexes it, and only then starts serving `/mcp`. A failure at that point exits with code 1 — a bad configuration fails the deployment instead of serving an empty corpus. `git` must be on the server's PATH, and its credentials come from the machine (SSH key, credential helper): `GIT_TERMINAL_PROMPT=0` is forced, so a missing credential fails fast instead of hanging a headless process.
+
+Configuration binds the `Docs` section; every key has an environment variable form (`Docs__Git__Reference`).
+
+| Key | Default | What it does |
+|---|---|---|
+| `Docs:Source` | `Git` | `Folder` (dev, stdio, tests) or `Git` (production) |
+| `Docs:Path` | `docs` | Folder mode only; ignored in Git mode, where it is derived |
+| `Docs:Git:RepositoryUrl` | — | **Required** in Git mode |
+| `Docs:Git:Reference` | `main` | Branch or tag to serve |
+| `Docs:Git:Subdirectory` | `docs` | Folder holding `manifest.json` inside the repository |
+| `Docs:Git:WorkingCopy` | `docs-checkout` | Kept between restarts, so a restart only fetches the delta |
+| `Docs:Git:Depth` | `1` | `0` fetches the whole history |
+| `Docs:Git:Timeout` | `00:02:00` | Budget per git invocation |
+| `ASPNETCORE_URLS` | `http://localhost:5000` | Do not hardcode it in `appsettings.json`: that would win over the environment |
+
+Updating the documentation means restarting the service (ADR #25). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the restart picked the new corpus up. Client registration then uses the HTTP transport:
+
+```json
+{
+  "mcpServers": {
+    "api-docs": {
+      "type": "http",
+      "url": "https://api-docs.example.internal/mcp"
     }
   }
 }

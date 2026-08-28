@@ -4,7 +4,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-namespace ApiDocs.Mcp.Stdio;
+namespace ApiDocs.Mcp;
 
 /// <summary>
 /// The resources of ARCHITECTURE §5.3. <c>resources/list</c> exposes every endpoint with its

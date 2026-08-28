@@ -1,11 +1,8 @@
-using ApiDocs.Application;
-using ApiDocs.Application.Ports;
 using ApiDocs.Infrastructure;
-using ApiDocs.Mcp.Stdio;
+using ApiDocs.Mcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -19,26 +16,9 @@ var docsPath = builder.Configuration["docs"] ?? "docs";
 builder.Services.AddApiDocumentation(docsPath);
 
 builder.Services
-    .AddMcpServer(options => options.ServerInfo = new ModelContextProtocol.Protocol.Implementation
-    {
-        Name = "api-docs",
-        Version = "1.0.0",
-    })
+    .AddMcpServer()
     .WithStdioServerTransport()
-    .WithTools<DocsTools>()
-    .WithListResourcesHandler(DocsResources.ListAsync)
-    .WithListResourceTemplatesHandler(DocsResources.ListTemplatesAsync)
-    .WithReadResourceHandler(DocsResources.ReadAsync);
-
-// ServerInstructions are read when the client initialises, after the index has been built below.
-builder.Services.AddOptions<McpServerOptions>().Configure<IIndexSnapshotProvider>((options, snapshots) =>
-{
-    options.ServerInstructions = snapshots.HasSnapshot
-        ? ToolContracts.ServerInstructions(
-            snapshots.Current.Platform.Platform,
-            snapshots.Current.Platform.PlatformVersion)
-        : ToolContracts.ServerInstructions("internal", "unknown");
-});
+    .WithApiDocsSurface();
 
 var host = builder.Build();
 

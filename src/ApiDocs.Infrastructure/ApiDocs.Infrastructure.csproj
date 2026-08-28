@@ -19,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ApiDocs.Mcp" />
     <InternalsVisibleTo Include="ApiDocs.Mcp.Stdio" />
+    <InternalsVisibleTo Include="ApiDocs.Mcp.Http" />
     <InternalsVisibleTo Include="ApiDocs.Tests" />
   </ItemGroup>
 

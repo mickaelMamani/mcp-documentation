@@ -31,4 +31,10 @@ internal static partial class Log
         Level = LogLevel.Debug,
         Message = "Tool {Tool} returned {Hits} results, {Tokens} tokens in {ElapsedMs} ms")]
     public static partial void ToolInvoked(ILogger logger, string tool, int hits, int tokens, long elapsedMs);
+
+    [LoggerMessage(
+        EventId = 1004,
+        Level = LogLevel.Information,
+        Message = "Documentation checked out from {Repository} at {Reference} ({Commit})")]
+    public static partial void DocsCheckedOut(ILogger logger, string repository, string reference, string commit);
 }

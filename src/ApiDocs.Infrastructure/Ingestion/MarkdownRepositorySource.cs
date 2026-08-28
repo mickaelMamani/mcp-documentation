@@ -13,6 +13,15 @@ internal sealed class DocsOptions
 
     /// <summary>Path of the documentation folder, the one holding <c>manifest.json</c>.</summary>
     public string Path { get; set; } = "docs";
+
+    /// <summary>
+    /// Where the corpus comes from. In <see cref="DocsSourceKind.Git"/> mode <see cref="Path"/> is
+    /// derived from the working copy and the subdirectory, so the reader below never changes.
+    /// </summary>
+    public DocsSourceKind Source { get; set; } = DocsSourceKind.Folder;
+
+    /// <summary>Checkout settings, used only when <see cref="Source"/> is Git.</summary>
+    public GitDocsOptions Git { get; set; } = new();
 }
 
 /// <summary>

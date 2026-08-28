@@ -3,7 +3,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ApiDocs.Application" />
     <InternalsVisibleTo Include="ApiDocs.Infrastructure" />
+    <InternalsVisibleTo Include="ApiDocs.Mcp" />
     <InternalsVisibleTo Include="ApiDocs.Mcp.Stdio" />
+    <InternalsVisibleTo Include="ApiDocs.Mcp.Http" />
     <InternalsVisibleTo Include="ApiDocs.Tests" />
   </ItemGroup>
 

@@ -484,3 +484,9 @@ $RECYCLE.BIN/
 # Standalone copy of the MCP server consumed by .mcp.json (see ARCHITECTURE ADR #19).
 # Rebuild with: dotnet publish src/ApiDocs.Mcp.Stdio -c Release -o .mcp-server
 .mcp-server/
+
+# Working copy of the documentation checked out by the HTTP host
+docs-checkout/
+
+# Published copy of the HTTP host used for local end-to-end tests
+.mcp-server-http/

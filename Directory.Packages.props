@@ -8,6 +8,7 @@
   <ItemGroup>
     <!-- Host / MCP -->
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
 
     <!-- Ingestion -->

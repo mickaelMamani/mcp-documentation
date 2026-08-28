@@ -3,6 +3,10 @@
     "api-docs": {
       "command": "dotnet",
       "args": [".mcp-server/ApiDocs.Mcp.Stdio.dll", "--docs", "./docs"]
+    },
+    "api-docs-http": {
+      "type": "http",
+      "url": "http://localhost:5080/mcp"
     }
   }
 }

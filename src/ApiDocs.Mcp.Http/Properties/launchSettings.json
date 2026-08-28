@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "ApiDocs.Mcp.Http": {
+      "commandName": "Project",
+      "workingDirectory": ".",
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Docs__Source": "Folder",
+        "Docs__Path": "../../docs"
+      }
+    }
+  }
+}

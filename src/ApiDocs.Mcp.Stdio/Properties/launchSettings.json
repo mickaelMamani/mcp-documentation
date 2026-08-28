@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "ApiDocs.Mcp.Stdio": {
+      "commandName": "Project",
+      "commandLineArgs": "--docs ./docs",
+      "workingDirectory": "../.."
+    }
+  }
+}

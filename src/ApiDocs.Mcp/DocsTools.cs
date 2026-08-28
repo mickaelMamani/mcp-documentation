@@ -5,7 +5,7 @@ using ApiDocs.Application.UseCases;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 
-namespace ApiDocs.Mcp.Stdio;
+namespace ApiDocs.Mcp;
 
 /// <summary>
 /// The four tools of ARCHITECTURE §5.2. Descriptions come from <see cref="ToolContracts"/> and are

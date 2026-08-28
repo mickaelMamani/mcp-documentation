@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace ApiDocs.Mcp.Stdio;
+namespace ApiDocs.Mcp;
 
 /// <summary>
 /// Host side structured logs (ARCHITECTURE §8). The <c>query</c> is never logged: it can carry
