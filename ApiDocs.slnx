@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/ApiDocs.Application/ApiDocs.Application.csproj" />
+    <Project Path="src/ApiDocs.Domain/ApiDocs.Domain.csproj" />
+    <Project Path="src/ApiDocs.Infrastructure/ApiDocs.Infrastructure.csproj" />
+    <Project Path="src/ApiDocs.Mcp.Http/ApiDocs.Mcp.Http.csproj" />
+    <Project Path="src/ApiDocs.Mcp.Stdio/ApiDocs.Mcp.Stdio.csproj" />
+    <Project Path="src/ApiDocs.Mcp/ApiDocs.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ApiDocs.Tests/ApiDocs.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -27,7 +27,7 @@ Authentication and hot reload are out of scope **by decision, not by oversight**
 ## Repository layout
 
 ```
-ApiDocs.sln
+ApiDocs.slnx
 docs/                         # fake documentation (DOC-FORMAT.md compliant) — the data
 specs/                        # DOC-FORMAT.md, ARCHITECTURE.md
 .mcp-server/                  # published copy of the stdio host that .mcp.json runs — gitignored
