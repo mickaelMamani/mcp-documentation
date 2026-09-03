@@ -19,4 +19,16 @@ internal static partial class Log
         Level = LogLevel.Information,
         Message = "MCP endpoint ready on {Route}: {Endpoints} endpoints, documentation revision {Revision}")]
     public static partial void EndpointReady(ILogger logger, string route, int endpoints, string revision);
+
+    [LoggerMessage(
+        EventId = 3002,
+        Level = LogLevel.Information,
+        Message = "Reindex requested on {Route}")]
+    public static partial void ReindexRequested(ILogger logger, string route);
+
+    [LoggerMessage(
+        EventId = 3003,
+        Level = LogLevel.Warning,
+        Message = "Reindex failed; the previous snapshot stays in service: {Reason}")]
+    public static partial void ReindexFailed(ILogger logger, string reason);
 }

@@ -20,9 +20,9 @@ In scope:
 - Fake documentation: 2 domains (`volatility`, `folio`), 4–6 endpoints each, plus `_domain.md` files and `_platform.md`, fully conforming to `DOC-FORMAT.md`.
 - Retrieval benchmark (xUnit) on a versioned question set.
 
-Out of scope (do not implement, do not scaffold): authentication/authorization, embeddings/vectors, reranking, `reindex` admin tool, hot reload of the index, persistence of the index, Aspire.
+Out of scope (do not implement, do not scaffold): authentication/authorization, embeddings/vectors, reranking, a `reindex` MCP tool, automatic reload triggers (`FileSystemWatcher`, git polling), persistence of the index, Aspire.
 
-Authentication and hot reload are out of scope **by decision, not by oversight** (`ARCHITECTURE.md` ADR #24 and #25): access is closed off upstream of the application (VPN, mTLS, gateway), and a documentation update is picked up by restarting the service. Both decisions have a single hook point should they be revisited — do not pre-build for them.
+Authentication is out of scope **by decision, not by oversight** (`ARCHITECTURE.md` ADR #24): access is closed off upstream of the application (VPN, mTLS, gateway), and the single hook point (`app.MapMcp` + `RequireAuthorization`) must not be pre-built. A documentation update is picked up by `POST /admin/reindex` on the HTTP host — called by the documentation publication pipeline — or by restarting the service (ADR #28, which amends ADR #25); the trigger stays out of the MCP surface on purpose: reindexing is an administration operation, not something connected agents should invoke.
 
 ## Repository layout
 
@@ -47,7 +47,7 @@ tests/
 
 Dependency direction: `Mcp.Stdio | Mcp.Http → Mcp → Application → Domain`, `Infrastructure → Application → Domain`. **Domain references nothing. Application references only Domain.** Any violation is a bug, even if it compiles. One deliberate exception: both hosts also reference `Infrastructure`, because a host is the composition root and is the only project allowed to know the implementations (`ARCHITECTURE.md` ADR #11). Do not "fix" it.
 
-The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health` endpoint. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
+The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health` and `/admin/reindex` endpoints. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
 
 ## Technology and packages
 
@@ -103,6 +103,7 @@ npx @modelcontextprotocol/inspector dotnet .mcp-server/ApiDocs.Mcp.Stdio.dll --d
 
 dotnet run --project src/ApiDocs.Mcp.Http                          # HTTP host, dev profile: local docs/ folder
 curl http://localhost:5080/health                                  # snapshot served + documentation revision
+curl -X POST http://localhost:5080/admin/reindex                   # reload the corpus without a restart (ADR #28)
 
 dotnet publish src/ApiDocs.Mcp.Http -c Release -o .mcp-server-http  # copy to run while still building the solution
 dotnet .mcp-server-http/ApiDocs.Mcp.Http.dll --urls http://localhost:5080 --Docs:Source=Folder --Docs:Path=./docs
@@ -159,7 +160,7 @@ sc.exe start ApiDocsMcp
 Invoke-RestMethod http://localhost:5080/health   # check docsRevision = the commit you expect
 ```
 
-Configuration lives in `appsettings.Production.json`: a template ships with the published output (a service runs with environment `Production` by default, so the file is picked up next to the exe) and **must be filled in on the server** — `Docs:Git:RepositoryUrl` is deliberately empty so an unconfigured deployment fails with the explicit "required" error instead of a confusing git one. It presets `urls` to `http://localhost:5080` (behind the gateway that provides access control, ADR #24) and an absolute `Docs:Git:WorkingCopy` (`C:\ProgramData\ApiDocsMcp\docs-checkout` — must be writable by the service account). Per-service environment variables under `HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment` (e.g. `Docs__Git__RepositoryUrl`) override the file — except for the listen address: a `urls` value in an appsettings file wins over `ASPNETCORE_URLS` (see the table above), so change it in the file. A bad configuration exits with code 1, which the SCM reports as a failed start — check the Event Log. Updating the documentation means restarting the service (ADR #25). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the restart picked the new corpus up. Client registration then uses the HTTP transport:
+Configuration lives in `appsettings.Production.json`: a template ships with the published output (a service runs with environment `Production` by default, so the file is picked up next to the exe) and **must be filled in on the server** — `Docs:Git:RepositoryUrl` is deliberately empty so an unconfigured deployment fails with the explicit "required" error instead of a confusing git one. It presets `urls` to `http://localhost:5080` (behind the gateway that provides access control, ADR #24) and an absolute `Docs:Git:WorkingCopy` (`C:\ProgramData\ApiDocsMcp\docs-checkout` — must be writable by the service account). Per-service environment variables under `HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment` (e.g. `Docs__Git__RepositoryUrl`) override the file — except for the listen address: a `urls` value in an appsettings file wins over `ASPNETCORE_URLS` (see the table above), so change it in the file. A bad configuration exits with code 1, which the SCM reports as a failed start — check the Event Log. Updating the documentation means `Invoke-RestMethod -Method Post http://localhost:5080/admin/reindex` — the publication pipeline calls it after pushing a new corpus; a failed rebuild answers 500 and keeps the previous snapshot served — or restarting the service (ADR #28). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the reindex or restart picked the new corpus up. Client registration then uses the HTTP transport:
 
 ```json
 {

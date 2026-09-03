@@ -2,6 +2,7 @@ using ApiDocs.Application.Ports;
 using ApiDocs.Infrastructure;
 using ApiDocs.Infrastructure.Ingestion;
 using ApiDocs.Mcp;
+using ApiDocs.Mcp.Http;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using ModelContextProtocol.AspNetCore;
 using Serilog;
@@ -77,6 +78,15 @@ app.MapGet("/health", (IIndexSnapshotProvider snapshots, IDocsRevision revision)
         indexBuildMs = (long)snapshot.BuildDuration.TotalMilliseconds,
         validationIssues = snapshot.Issues.Length,
     });
+});
+
+// Reload trigger (ADR #28): the documentation publication pipeline calls this after pushing a new
+// corpus, instead of restarting the service. Same trust model as /mcp — no in-app auth, access is
+// closed upstream (ADR #24). A failed rebuild keeps the previous snapshot and reports 500.
+app.MapPost(ReindexEndpoint.Route, async (IIndexSnapshotProvider snapshots, IDocsRevision revision) =>
+{
+    var (statusCode, body) = await ReindexEndpoint.ExecuteAsync(snapshots, revision, logger);
+    return Results.Json(body, statusCode: statusCode);
 });
 
 Log.EndpointReady(
