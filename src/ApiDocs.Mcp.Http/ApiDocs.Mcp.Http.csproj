@@ -23,4 +23,10 @@
     <InternalsVisibleTo Include="ApiDocs.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Dev-only override (Docs:Source=Folder + relative path): must not ship with the service,
+         where a stray ASPNETCORE_ENVIRONMENT=Development would silently bypass the Git source. -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>
