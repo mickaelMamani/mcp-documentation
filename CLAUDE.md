@@ -47,7 +47,7 @@ tests/
 
 Dependency direction: `Mcp.Stdio | Mcp.Http → Mcp → Application → Domain`, `Infrastructure → Application → Domain`. **Domain references nothing. Application references only Domain.** Any violation is a bug, even if it compiles. One deliberate exception: both hosts also reference `Infrastructure`, because a host is the composition root and is the only project allowed to know the implementations (`ARCHITECTURE.md` ADR #11). Do not "fix" it.
 
-The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health` and `/admin/reindex` endpoints. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
+The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health`, `/admin/reindex` and `/scalar` (+ `/openapi/v1.json`) endpoints. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
 
 ## Technology and packages
 
@@ -57,6 +57,7 @@ The two hosts contain **only** wiring: transport, configuration, startup, and fo
 - `Markdig` (+ YAML front matter extension), `YamlDotNet`, `System.Text.Json`.
 - `Microsoft.ML.Tokenizers` for token counting (`cl100k_base`), together with `Microsoft.ML.Tokenizers.Data.Cl100kBase`, which embeds the vocabulary: without it the tokenizer fetches it over the network at startup, which breaks the "no outbound call from the server" rule (`ARCHITECTURE.md` ADR #16).
 - `Serilog.AspNetCore` — **HTTP host only**. The console sink is declared in code (the published copy runs from the repo root, where `appsettings.json` is out of content root); levels come from the `Serilog` section of `appsettings.json`, and extra sinks can be added there. `writeToProviders: true` keeps the Event Log provider added by `UseWindowsService` working under the SCM (`ARCHITECTURE.md` ADR #27). Never add it to the stdio host: its console sink writes to stdout, which is the JSON-RPC channel.
+- `Swashbuckle.AspNetCore.SwaggerGen` + `Scalar.AspNetCore` — **HTTP host only** (ADR #29): OpenAPI document of the operational endpoints (`/health`, `/admin/reindex`) on `/openapi/v1.json`, rendered by Scalar at `/scalar`. `/mcp` is excluded from the document (JSON-RPC has no OpenAPI shape). Scalar's assets are embedded in the package — no CDN calls.
 - Tests: xUnit, FluentAssertions.
 - Central package management (`Directory.Packages.props`) with pinned versions, plus a committed `NuGet.config` pinned to a single source — central package management fails with NU1507 as soon as a machine declares several (`ARCHITECTURE.md` ADR #17).
 
@@ -104,6 +105,7 @@ npx @modelcontextprotocol/inspector dotnet .mcp-server/ApiDocs.Mcp.Stdio.dll --d
 dotnet run --project src/ApiDocs.Mcp.Http                          # HTTP host, dev profile: local docs/ folder
 curl http://localhost:5080/health                                  # snapshot served + documentation revision
 curl -X POST http://localhost:5080/admin/reindex                   # reload the corpus without a restart (ADR #28)
+# http://localhost:5080/scalar — reference of the operational API (OpenAPI on /openapi/v1.json)
 
 dotnet publish src/ApiDocs.Mcp.Http -c Release -o .mcp-server-http  # copy to run while still building the solution
 dotnet .mcp-server-http/ApiDocs.Mcp.Http.dll --urls http://localhost:5080 --Docs:Source=Folder --Docs:Path=./docs
