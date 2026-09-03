@@ -11,6 +11,7 @@
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
 
     <!-- Ingestion -->
     <PackageVersion Include="Markdig" Version="0.45.0" />

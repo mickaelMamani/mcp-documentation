@@ -56,6 +56,7 @@ The two hosts contain **only** wiring: transport, configuration, startup, and fo
 - `Lucene.Net`, `Lucene.Net.Analysis.Common` (4.8.x). `RAMDirectory`, `BM25Similarity`, per-field analyzers as specified in `ARCHITECTURE.md §4.2`. Queries are built with query objects (`BooleanQuery`, `TermQuery`, `PrefixQuery`, `FuzzyQuery`), **never** with a text query parser.
 - `Markdig` (+ YAML front matter extension), `YamlDotNet`, `System.Text.Json`.
 - `Microsoft.ML.Tokenizers` for token counting (`cl100k_base`), together with `Microsoft.ML.Tokenizers.Data.Cl100kBase`, which embeds the vocabulary: without it the tokenizer fetches it over the network at startup, which breaks the "no outbound call from the server" rule (`ARCHITECTURE.md` ADR #16).
+- `Serilog.AspNetCore` — **HTTP host only**. The console sink is declared in code (the published copy runs from the repo root, where `appsettings.json` is out of content root); levels come from the `Serilog` section of `appsettings.json`, and extra sinks can be added there. `writeToProviders: true` keeps the Event Log provider added by `UseWindowsService` working under the SCM (`ARCHITECTURE.md` ADR #27). Never add it to the stdio host: its console sink writes to stdout, which is the JSON-RPC channel.
 - Tests: xUnit, FluentAssertions.
 - Central package management (`Directory.Packages.props`) with pinned versions, plus a committed `NuGet.config` pinned to a single source — central package management fails with NU1507 as soon as a machine declares several (`ARCHITECTURE.md` ADR #17).
 
@@ -65,7 +66,7 @@ Before using any package API you are not certain about, look it up (Context7: `r
 
 - `internal sealed` by default. `public` only where the SDK or test project requires it (use `InternalsVisibleTo` for tests).
 - Primary constructors. `readonly record struct` / `sealed record` for value objects; invariants enforced in factory methods.
-- Logging with `LoggerMessage` source generators in a `Log` partial class per assembly (`Log.IndexRebuilt(logger, files, chunks, ms)`). **In stdio mode all logs go to stderr** — stdout is the JSON-RPC channel; writing anything else to stdout breaks the protocol.
+- Logging with `LoggerMessage` source generators in a `Log` partial class per assembly (`Log.IndexRebuilt(logger, files, chunks, ms)`). **In stdio mode all logs go to stderr** — stdout is the JSON-RPC channel; writing anything else to stdout breaks the protocol. The HTTP host routes `ILogger` output through Serilog (ADR #27); code keeps logging through `LoggerMessage`, never through Serilog's static `Log` class.
 - No `ConfigureAwait(false)` in the host project; use it in Infrastructure/Application (they are library code).
 - No swallowed exceptions. Ingestion errors for a file → file rejected + validation report; the rest of the index still builds. A failed rebuild keeps the previous snapshot.
 - Nullable reference types everywhere; no `!` null-forgiving except in tests with a comment.

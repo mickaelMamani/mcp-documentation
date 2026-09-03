@@ -4,6 +4,7 @@ using ApiDocs.Infrastructure.Ingestion;
 using ApiDocs.Mcp;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using ModelContextProtocol.AspNetCore;
+using Serilog;
 using Log = ApiDocs.Mcp.Http.Log;
 
 const string McpRoute = "/mcp";
@@ -16,7 +17,21 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     Args = args,
     ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default,
 });
+// Cleared before UseWindowsService so the Event Log provider it adds under the SCM survives;
+// without clearing, the default console provider would duplicate every line Serilog writes.
+builder.Logging.ClearProviders();
 builder.Host.UseWindowsService(options => options.ServiceName = "ApiDocs MCP");
+
+// The console sink lives in code, not in configuration: the published copy is run from the repo
+// root (ADR #19), where appsettings.json — and any sink declared in it — is out of content root.
+// Levels stay in the "Serilog" section of appsettings. writeToProviders keeps forwarding to the
+// SCM's Event Log provider; it is the only one left.
+builder.Services.AddSerilog(
+    (services, loggerConfiguration) => loggerConfiguration
+        .ReadFrom.Configuration(builder.Configuration)
+        .ReadFrom.Services(services)
+        .WriteTo.Console(),
+    writeToProviders: true);
 
 // The corpus is centralised: in production the server checks it out from Git itself (ADR #23).
 builder.Services.AddApiDocumentation(builder.Configuration);
