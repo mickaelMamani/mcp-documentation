@@ -2,12 +2,21 @@ using ApiDocs.Application.Ports;
 using ApiDocs.Infrastructure;
 using ApiDocs.Infrastructure.Ingestion;
 using ApiDocs.Mcp;
+using Microsoft.Extensions.Hosting.WindowsServices;
 using ModelContextProtocol.AspNetCore;
 using Log = ApiDocs.Mcp.Http.Log;
 
 const string McpRoute = "/mcp";
 
-var builder = WebApplication.CreateBuilder(args);
+// Under the Windows Service Control Manager the working directory is System32, so the content root
+// must be the binaries folder for appsettings.json to be found; UseWindowsService reports start and
+// stop to the SCM. Both are no-ops outside a Windows service (ADR #26).
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default,
+});
+builder.Host.UseWindowsService(options => options.ServiceName = "ApiDocs MCP");
 
 // The corpus is centralised: in production the server checks it out from Git itself (ADR #23).
 builder.Services.AddApiDocumentation(builder.Configuration);

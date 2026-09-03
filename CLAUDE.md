@@ -142,7 +142,23 @@ Configuration binds the `Docs` section; every key has an environment variable fo
 | `Docs:Git:Timeout` | `00:02:00` | Budget per git invocation |
 | `ASPNETCORE_URLS` | `http://localhost:5000` | Do not hardcode it in `appsettings.json`: that would win over the environment |
 
-Updating the documentation means restarting the service (ADR #25). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the restart picked the new corpus up. Client registration then uses the HTTP transport:
+### Deploying as a Windows service (manual)
+
+The host integrates with the Windows Service Control Manager (`UseWindowsService()`, ADR #26): under the SCM it reports start/stop, logs to the Event Log (source `ApiDocs MCP`), and moves the content root to the binaries folder so `appsettings.json` is found. Everywhere else it behaves as a plain console app. Two things the SCM does **not** fix, because paths resolve against the process working directory (`C:\Windows\System32` for a service, ADR #21): `Docs:Git:WorkingCopy` must be an **absolute** path, and `git` must be on the **machine** PATH with credentials the service account can use.
+
+```powershell
+# on a build machine
+dotnet publish src/ApiDocs.Mcp.Http -c Release -o publish   # framework-dependent: ASP.NET Core Runtime 8 required on the server
+# copy publish/ to the server, e.g. C:\Services\ApiDocsMcp
+
+# on the server (elevated)
+sc.exe create ApiDocsMcp binPath= "C:\Services\ApiDocsMcp\ApiDocs.Mcp.Http.exe" start= delayed-auto obj= "NT SERVICE\ApiDocsMcp" DisplayName= "ApiDocs MCP"
+sc.exe failure ApiDocsMcp reset= 86400 actions= restart/5000/restart/30000/restart/60000
+sc.exe start ApiDocsMcp
+Invoke-RestMethod http://localhost:5080/health   # check docsRevision = the commit you expect
+```
+
+Configuration goes in `appsettings.Production.json` next to the exe (or per-service environment variables under `HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment`): at minimum `Docs:Git:RepositoryUrl`, an absolute `Docs:Git:WorkingCopy` (e.g. `C:\ProgramData\ApiDocsMcp\docs-checkout`, writable by the service account), and `ASPNETCORE_URLS`/`urls` (e.g. `http://localhost:5080` behind the gateway that provides access control, ADR #24). A bad configuration exits with code 1, which the SCM reports as a failed start — check the Event Log. Updating the documentation means restarting the service (ADR #25). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the restart picked the new corpus up. Client registration then uses the HTTP transport:
 
 ```json
 {
