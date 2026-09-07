@@ -26,12 +26,14 @@
 docs/
 ├── manifest.json                 # Catalogue machine : domaines, endpoints, version
 ├── _platform.md                  # Vue d'ensemble plateforme : auth, conventions, erreurs globales
-├── volatility/
-│   ├── _domain.md                # Vue d'ensemble du domaine + cas d'usage → endpoints
-│   ├── plug.md                   # Un fichier par endpoint
-│   ├── get-surface.md
+├── pricing/                      # Dossier de regroupement (optionnel) : macro-groupe fonctionnel
+│   ├── volatility/
+│   │   ├── _domain.md            # Vue d'ensemble du domaine + cas d'usage → endpoints
+│   │   ├── plug.md               # Un fichier par endpoint
+│   │   ├── get-surface.md
+│   │   └── ...
 │   └── ...
-├── folio/
+├── folio/                        # Domaine à la racine : le regroupement n'est pas obligatoire
 │   ├── _domain.md
 │   ├── search-folio.md
 │   ├── get-folio-by-id.md
@@ -42,6 +44,7 @@ docs/
 Règles :
 
 - **Un dossier par domaine.** Nom en `kebab-case`, identique au champ `domain` (normalisé) du manifest.
+- **Un dossier de regroupement optionnel** au-dessus des dossiers de domaine : nom en `kebab-case`, un seul niveau, mélange libre avec des domaines à la racine. Purement organisationnel : le serveur ne lit que les chemins `file` du manifest (relatifs à la racine `docs/`, séparateur `/`), qui sont la seule source de vérité sur l'emplacement des fichiers. Le regroupement n'apparaît ni dans les identifiants de domaine, ni dans la surface MCP (`list_domains`, ressources), ni dans le retrieval. `manifest.json` et `_platform.md` restent à la racine. Rétrocompatible : un corpus entièrement à plat reste valide en `formatVersion` 1.0 (ARCHITECTURE ADR #31).
 - **Un fichier par endpoint.** Nom = `operationId` en `kebab-case` (`GetFolioById` → `get-folio-by-id.md`). Le nom de fichier est dérivé, jamais source de vérité : l'`operationId` du front matter fait foi.
 - **Fichiers préfixés `_`** = fichiers de contexte (jamais des endpoints). Le serveur les traite différemment (§4.3).
 - Pas de sous-dossiers dans un domaine. Si un domaine dépasse ~150 endpoints, le découper en plusieurs domaines plutôt qu'en sous-dossiers.
@@ -88,7 +91,7 @@ Champs obligatoires : `formatVersion`, `platform`, `platformVersion`, `language`
 
 ## 4. Contenu des fichiers
 
-### 4.1 Fichier endpoint (`<domain>/<operation-id>.md`)
+### 4.1 Fichier endpoint (`[<groupe>/]<domain>/<operation-id>.md`)
 
 #### Front matter (obligatoire)
 
@@ -167,7 +170,7 @@ Contraintes :
 - Longueur cible par section : Description ≤ 250 tokens, Parameters ≤ 400, Response ≤ 300, chaque Example ≤ 400. Au-delà, le générateur doit synthétiser. Un chunk trop long est tronqué par le serveur au budget, ce qui dégrade la réponse.
 - Pas de liens relatifs vers d'autres fichiers ; référencer les endpoints par `operationId` en code inline (`` `GetSurface` ``). Le serveur les résout en `endpoint://` (voir ARCHITECTURE §5.3).
 
-### 4.2 Fichier domaine (`<domain>/_domain.md`)
+### 4.2 Fichier domaine (`[<groupe>/]<domain>/_domain.md`)
 
 C'est le chunk qui répond aux questions **d'intention** ("comment requêter les folios ?") quand l'utilisateur ne connaît pas encore le nom de l'endpoint. Le générateur doit y investir.
 

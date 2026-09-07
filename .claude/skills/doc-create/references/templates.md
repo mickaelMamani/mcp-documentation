@@ -4,7 +4,7 @@ Every template below already applies the traps documented in SKILL.md: quoted `s
 quoted `formatVersion`, `>-` block for `keywords`, exact section titles, one tagged code
 block per example. Replace the placeholder content; keep the structure and the quoting.
 
-## 1. Endpoint file — `<domain>/<operation-id>.md`
+## 1. Endpoint file — `[<group>/]<domain>/<operation-id>.md`
 
 Filename = `operationId` in kebab-case (`GetFolioById` → `get-folio-by-id.md`).
 
@@ -89,7 +89,7 @@ Checklist for this file kind:
 - [ ] Exactly one fenced block per Example section, language tagged, self-contained code
 - [ ] `related` entries all exist as operationIds
 
-## 2. Domain file — `<domain>/_domain.md`
+## 2. Domain file — `[<group>/]<domain>/_domain.md`
 
 ````markdown
 ---

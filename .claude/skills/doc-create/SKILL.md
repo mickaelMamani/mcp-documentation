@@ -18,8 +18,8 @@ memory; every known trap is already handled in them.
 ## Workflow
 
 1. **Identify what you are touching.** Four file kinds exist, each with its own rules:
-   `manifest.json`, endpoint files (`<domain>/<operation-id>.md`), domain files
-   (`<domain>/_domain.md`), and the platform file (`_platform.md`).
+   `manifest.json`, endpoint files (`[<group>/]<domain>/<operation-id>.md`), domain files
+   (`[<group>/]<domain>/_domain.md`), and the platform file (`_platform.md`).
 2. **Creating or updating** → copy the matching template from `references/templates.md`,
    fill it in, then run the full checklist below on the result.
 3. **Checking existing docs** → run the checklist below file by file, then run the real
@@ -68,6 +68,11 @@ seen on this format are YAML syntax, not content. Apply these rules mechanically
 ## Files and folders
 
 - One folder per domain, named in **kebab-case**, matching the normalized `domain` field.
+- Optionally, domain folders may sit under **one** grouping folder (kebab-case, macro
+  feature group): `pricing/volatility/plug.md`. Grouped and root-level domains can mix.
+  Purely organizational — the server only follows the manifest `file` paths (relative to
+  the docs root, `/` separator), so the manifest must point at the real path; the group
+  never appears in domain ids or the MCP surface (DOC-FORMAT §2, ARCHITECTURE ADR #31).
 - One file per endpoint, named as the `operationId` in kebab-case:
   `GetFolioById` → `get-folio-by-id.md`. The front matter `operationId` is the source of
   truth, the filename is derived — keep them in sync anyway.
