@@ -9,6 +9,7 @@
     <ProjectReference Include="..\..\src\ApiDocs.Application\ApiDocs.Application.csproj" />
     <ProjectReference Include="..\..\src\ApiDocs.Infrastructure\ApiDocs.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\ApiDocs.Mcp.Stdio\ApiDocs.Mcp.Stdio.csproj" />
+    <ProjectReference Include="..\..\src\ApiDocs.Mcp.Http\ApiDocs.Mcp.Http.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -101,8 +101,14 @@ internal sealed class GitDocumentSource : IDocumentSource, IDocsRevision
 
     public async Task<DocumentSet> LoadAsync(CancellationToken cancellationToken = default)
     {
-        await CheckoutAsync(cancellationToken).ConfigureAwait(false);
-        return await _inner.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var commit = await CheckoutAsync(cancellationToken).ConfigureAwait(false);
+        var set = await _inner.LoadAsync(cancellationToken).ConfigureAwait(false);
+
+        // Published only after the corpus at this commit has been read: a reload that fails must
+        // leave both the served snapshot and the revision reported by /health on the previous
+        // state (ADR #28).
+        Volatile.Write(ref _commit, commit);
+        return set;
     }
 
     /// <summary>
@@ -110,7 +116,7 @@ internal sealed class GitDocumentSource : IDocumentSource, IDocsRevision
     /// configured reference. A failure throws, so <see cref="IndexSnapshotProvider"/> keeps the
     /// snapshot it already serves instead of publishing a truncated corpus (ARCHITECTURE §6).
     /// </summary>
-    private async Task CheckoutAsync(CancellationToken cancellationToken)
+    private async Task<string> CheckoutAsync(CancellationToken cancellationToken)
     {
         var root = Path.GetFullPath(_git.WorkingCopy);
         Directory.CreateDirectory(root);
@@ -133,8 +139,8 @@ internal sealed class GitDocumentSource : IDocumentSource, IDocsRevision
         await RunAsync(root, cancellationToken, "checkout", "--force", "--detach", HeadRef).ConfigureAwait(false);
 
         var commit = (await RunAsync(root, cancellationToken, "rev-parse", "HEAD").ConfigureAwait(false)).Trim();
-        Volatile.Write(ref _commit, commit);
         Log.DocsCheckedOut(_logger, Redact(_git.RepositoryUrl), _git.Reference, commit);
+        return commit;
     }
 
     private async Task<string> RunAsync(string workingDirectory, CancellationToken cancellationToken, params string[] arguments)

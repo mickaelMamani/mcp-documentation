@@ -5,9 +5,7 @@
       "workingDirectory": ".",
       "applicationUrl": "http://localhost:5080",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "Docs__Source": "Folder",
-        "Docs__Path": "../../docs"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }

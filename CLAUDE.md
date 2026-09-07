@@ -20,9 +20,9 @@ In scope:
 - Fake documentation: 2 domains (`volatility`, `folio`), 4–6 endpoints each, plus `_domain.md` files and `_platform.md`, fully conforming to `DOC-FORMAT.md`.
 - Retrieval benchmark (xUnit) on a versioned question set.
 
-Out of scope (do not implement, do not scaffold): authentication/authorization, embeddings/vectors, reranking, `reindex` admin tool, hot reload of the index, persistence of the index, Aspire.
+Out of scope (do not implement, do not scaffold): authentication/authorization, embeddings/vectors, reranking, a `reindex` MCP tool, automatic reload triggers (`FileSystemWatcher`, git polling), persistence of the index, Aspire.
 
-Authentication and hot reload are out of scope **by decision, not by oversight** (`ARCHITECTURE.md` ADR #24 and #25): access is closed off upstream of the application (VPN, mTLS, gateway), and a documentation update is picked up by restarting the service. Both decisions have a single hook point should they be revisited — do not pre-build for them.
+Authentication is out of scope **by decision, not by oversight** (`ARCHITECTURE.md` ADR #24): access is closed off upstream of the application (VPN, mTLS, gateway), and the single hook point (`app.MapMcp` + `RequireAuthorization`) must not be pre-built. A documentation update is picked up by `POST /admin/reindex` on the HTTP host — called by the documentation publication pipeline — or by restarting the service (ADR #28, which amends ADR #25); the trigger stays out of the MCP surface on purpose: reindexing is an administration operation, not something connected agents should invoke.
 
 ## Repository layout
 
@@ -47,7 +47,7 @@ tests/
 
 Dependency direction: `Mcp.Stdio | Mcp.Http → Mcp → Application → Domain`, `Infrastructure → Application → Domain`. **Domain references nothing. Application references only Domain.** Any violation is a bug, even if it compiles. One deliberate exception: both hosts also reference `Infrastructure`, because a host is the composition root and is the only project allowed to know the implementations (`ARCHITECTURE.md` ADR #11). Do not "fix" it.
 
-The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health` endpoint. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
+The two hosts contain **only** wiring: transport, configuration, startup, and for the HTTP one the `/health`, `/admin/reindex` and `/scalar` (+ `/openapi/v1.json`) endpoints. Anything a client can see — a tool, its description, a resource — belongs to `ApiDocs.Mcp` and is registered by `WithApiDocsSurface()`, so stdio and HTTP can never expose different surfaces (`ARCHITECTURE.md` ADR #22).
 
 ## Technology and packages
 
@@ -57,6 +57,7 @@ The two hosts contain **only** wiring: transport, configuration, startup, and fo
 - `Markdig` (+ YAML front matter extension), `YamlDotNet`, `System.Text.Json`.
 - `Microsoft.ML.Tokenizers` for token counting (`cl100k_base`), together with `Microsoft.ML.Tokenizers.Data.Cl100kBase`, which embeds the vocabulary: without it the tokenizer fetches it over the network at startup, which breaks the "no outbound call from the server" rule (`ARCHITECTURE.md` ADR #16).
 - `Serilog.AspNetCore` — **HTTP host only**. The console sink is declared in code (the published copy runs from the repo root, where `appsettings.json` is out of content root); levels come from the `Serilog` section of `appsettings.json`, and extra sinks can be added there. `writeToProviders: true` keeps the Event Log provider added by `UseWindowsService` working under the SCM (`ARCHITECTURE.md` ADR #27). Never add it to the stdio host: its console sink writes to stdout, which is the JSON-RPC channel.
+- `Swashbuckle.AspNetCore.SwaggerGen` + `Scalar.AspNetCore` — **HTTP host only** (ADR #29): OpenAPI document of the operational endpoints (`/health`, `/admin/reindex`) on `/openapi/v1.json`, rendered by Scalar at `/scalar`. `/mcp` is excluded from the document (JSON-RPC has no OpenAPI shape). Scalar's assets are embedded in the package — no CDN calls.
 - Tests: xUnit, FluentAssertions.
 - Central package management (`Directory.Packages.props`) with pinned versions, plus a committed `NuGet.config` pinned to a single source — central package management fails with NU1507 as soon as a machine declares several (`ARCHITECTURE.md` ADR #17).
 
@@ -103,12 +104,14 @@ npx @modelcontextprotocol/inspector dotnet .mcp-server/ApiDocs.Mcp.Stdio.dll --d
 
 dotnet run --project src/ApiDocs.Mcp.Http                          # HTTP host, dev profile: local docs/ folder
 curl http://localhost:5080/health                                  # snapshot served + documentation revision
+curl -X POST http://localhost:5080/admin/reindex                   # reload the corpus without a restart (ADR #28)
+# http://localhost:5080/scalar — reference of the operational API (OpenAPI on /openapi/v1.json)
 
 dotnet publish src/ApiDocs.Mcp.Http -c Release -o .mcp-server-http  # copy to run while still building the solution
 dotnet .mcp-server-http/ApiDocs.Mcp.Http.dll --urls http://localhost:5080 --Docs:Source=Folder --Docs:Path=./docs
 ```
 
-Same trap as the stdio host, same fix: `dotnet run --project src/ApiDocs.Mcp.Http` holds `src/ApiDocs.Mcp.Http/bin/**` locked, so `dotnet build` and `dotnet test` fail for as long as it runs. Run the published copy instead when the server has to stay up while you keep working (`ARCHITECTURE.md` ADR #19). Note that `dotnet run` on a Web SDK project sets the working directory to the **project** folder, not the repository root — hence `Docs__Path=../../docs` in its launch profile.
+Same trap as the stdio host, same fix: `dotnet run --project src/ApiDocs.Mcp.Http` holds `src/ApiDocs.Mcp.Http/bin/**` locked, so `dotnet build` and `dotnet test` fail for as long as it runs. Run the published copy instead when the server has to stay up while you keep working (`ARCHITECTURE.md` ADR #19). Note that `dotnet run` on a Web SDK project sets the working directory to the **project** folder, not the repository root — hence `Docs:Path=../../docs` in `appsettings.Development.json`, which carries the dev override (`Docs:Source=Folder` + relative path); the launch profile only sets `ASPNETCORE_ENVIRONMENT=Development` (ADR #30). The file is excluded from `dotnet publish` so a deployed service can never pick it up.
 
 Debugging with F5 (Visual Studio / VS Code) uses `src/ApiDocs.Mcp.Stdio/Properties/launchSettings.json`, which sets the working directory to the repository root and passes `--docs ./docs`. Without it the debugger starts in `bin/Debug/net8.0`, `--docs` resolves to `bin/Debug/net8.0/docs`, and the host exits with `No manifest.json found` (`ARCHITECTURE.md` ADR #21). The path is always resolved against the working directory of the process, never against the binaries.
 
@@ -159,7 +162,7 @@ sc.exe start ApiDocsMcp
 Invoke-RestMethod http://localhost:5080/health   # check docsRevision = the commit you expect
 ```
 
-Configuration lives in `appsettings.Production.json`: a template ships with the published output (a service runs with environment `Production` by default, so the file is picked up next to the exe) and **must be filled in on the server** — `Docs:Git:RepositoryUrl` is deliberately empty so an unconfigured deployment fails with the explicit "required" error instead of a confusing git one. It presets `urls` to `http://localhost:5080` (behind the gateway that provides access control, ADR #24) and an absolute `Docs:Git:WorkingCopy` (`C:\ProgramData\ApiDocsMcp\docs-checkout` — must be writable by the service account). Per-service environment variables under `HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment` (e.g. `Docs__Git__RepositoryUrl`) override the file — except for the listen address: a `urls` value in an appsettings file wins over `ASPNETCORE_URLS` (see the table above), so change it in the file. A bad configuration exits with code 1, which the SCM reports as a failed start — check the Event Log. Updating the documentation means restarting the service (ADR #25). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the restart picked the new corpus up. Client registration then uses the HTTP transport:
+Configuration lives in `appsettings.Production.json`: a template ships with the published output (a service runs with environment `Production` by default, so the file is picked up next to the exe) and **must be filled in on the server** — `Docs:Git:RepositoryUrl` is deliberately empty so an unconfigured deployment fails with the explicit "required" error instead of a confusing git one. It presets `urls` to `http://localhost:5080` (behind the gateway that provides access control, ADR #24) and an absolute `Docs:Git:WorkingCopy` (`C:\ProgramData\ApiDocsMcp\docs-checkout` — must be writable by the service account). Per-service environment variables under `HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment` (e.g. `Docs__Git__RepositoryUrl`) override the file — except for the listen address: a `urls` value in an appsettings file wins over `ASPNETCORE_URLS` (see the table above), so change it in the file. A bad configuration exits with code 1, which the SCM reports as a failed start — check the Event Log. Updating the documentation means `Invoke-RestMethod -Method Post http://localhost:5080/admin/reindex` — the publication pipeline calls it after pushing a new corpus; a failed rebuild answers 500 and keeps the previous snapshot served — or restarting the service (ADR #28). `GET /health` reports `docsRevision`, the commit actually indexed — that is how you confirm the reindex or restart picked the new corpus up. Client registration then uses the HTTP transport:
 
 ```json
 {

@@ -73,6 +73,27 @@ public sealed class GitDocumentSourceTests : IDisposable
         after.Platform.RawBody.Should().Contain("Sentinel section");
     }
 
+    /// <summary>ADR #28: a reload that fails must not move the revision reported by /health.</summary>
+    [Fact]
+    public async Task Keeps_the_previous_revision_when_the_new_corpus_does_not_load()
+    {
+        using var services = Services(GitSettings());
+        var source = services.GetRequiredService<IDocumentSource>();
+        var revision = services.GetRequiredService<IDocsRevision>();
+
+        await source.LoadAsync();
+        var published = revision.Commit;
+        published.Should().NotBeNull();
+
+        File.Delete(Path.Combine(_origin, "docs", "manifest.json"));
+        Git("commit", "--quiet", "--all", "-m", "Break the corpus");
+
+        var load = () => source.LoadAsync();
+
+        await load.Should().ThrowAsync<Exception>();
+        revision.Commit.Should().Be(published);
+    }
+
     [Fact]
     public void Keeps_the_plain_folder_reader_when_the_source_is_a_folder()
     {
