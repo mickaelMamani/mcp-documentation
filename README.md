@@ -14,7 +14,7 @@ fictif écrit à la main (plateforme « Federer API », domaines `volatility` et
 | Transports | stdio (poste développeur) et Streamable HTTP `/mcp` (serveur partagé) |
 | Corpus | 2 domaines · 12 endpoints · 16 fichiers · 89 chunks |
 | Qualité | hit@3 **100 %**, hit@1 **96 %**, MRR **0.972** sur 47 questions · 1 445 tokens en moyenne par `get_endpoint` |
-| Tests | 53 tests, dont le validateur de format, le benchmark de retrieval et le balayage de réglages |
+| Tests | 56 tests, dont le validateur de format, le benchmark de retrieval et le balayage de réglages |
 
 Les deux documents de conception font foi : [`specs/ARCHITECTURE.md`](specs/ARCHITECTURE.md)
 (couches, retrieval, surface MCP, ADR) et [`specs/DOC-FORMAT.md`](specs/DOC-FORMAT.md) (contrat du
@@ -28,7 +28,7 @@ Prérequis : **.NET 8 SDK**. Le mode `Git` de l'hôte HTTP exige en plus `git` s
 
 ```bash
 dotnet build
-dotnet test                                                    # 53 tests, benchmark inclus
+dotnet test                                                    # 56 tests, benchmark inclus
 dotnet run --project src/ApiDocs.Mcp.Stdio -- --docs ./docs     # boucle de dev en stdio
 ```
 
@@ -132,7 +132,8 @@ dossier docs/ → validation manifest + front matter → sections ## → Documen
 L'index est construit **au démarrage, avant que le transport ne serve** : un client ne voit jamais
 un serveur à moitié construit, et un corpus invalide fait sortir le process en code 1 plutôt que de
 servir une documentation vide. Les requêtes lisent le snapshot courant sans verrou. Une évolution
-de la documentation est prise en compte par un redémarrage (ADR #25).
+de la documentation est prise en compte par `POST /admin/reindex` sur l'hôte HTTP — un rebuild qui
+échoue conserve le snapshot précédent — ou par un redémarrage (ADR #28, qui amende l'ADR #25).
 
 ### Retrieval
 
@@ -252,6 +253,48 @@ qu'un redémarrage a bien pris la nouvelle documentation :
   "indexBuildMs": 412, "validationIssues": 0 }
 ```
 
+Une fois le service en place, une mise à jour de la documentation se prend en compte **sans
+redémarrage** : `POST /admin/reindex` (appelé par le pipeline de publication de la doc, ADR #28).
+Un rebuild qui échoue répond 500 et **conserve le snapshot précédent**. La référence des endpoints
+opérationnels est servie sur `/scalar` (OpenAPI sur `/openapi/v1.json`, ADR #29).
+
+### Déploiement en service Windows
+
+L'hôte s'intègre au Service Control Manager (`UseWindowsService()`, ADR #26) : sous le SCM il
+signale démarrage/arrêt, journalise dans l'Event Log (source `ApiDocs MCP`) et déplace le content
+root vers le dossier des binaires pour trouver `appsettings.json`. Partout ailleurs il reste une
+application console ordinaire.
+
+```powershell
+# sur une machine de build
+dotnet publish src/ApiDocs.Mcp.Http -c Release -o publish   # framework-dependent : runtime ASP.NET Core 8 requis sur le serveur
+# copier publish/ sur le serveur, p. ex. C:\Services\ApiDocsMcp
+
+# sur le serveur (PowerShell administrateur) — l'espace après chaque `=` est obligatoire
+sc.exe create ApiDocsMcp binPath= "C:\Services\ApiDocsMcp\ApiDocs.Mcp.Http.exe" start= delayed-auto DisplayName= "ApiDocs MCP"
+sc.exe failure ApiDocsMcp reset= 86400 actions= restart/5000/restart/30000/restart/60000
+sc.exe start ApiDocsMcp
+Invoke-RestMethod http://localhost:5080/health   # vérifier docsRevision = le commit attendu
+```
+
+Avant le `sc.exe start`, remplir `appsettings.Production.json` à côté de l'exe (un service tourne
+en environnement `Production` par défaut, le template est livré par le publish) :
+`Docs:Git:RepositoryUrl` est **volontairement vide** — le service refuse de démarrer avec l'erreur
+explicite « required » tant qu'il ne l'est pas. Le fichier prédéfinit `urls` sur
+`http://localhost:5080` (derrière la passerelle qui porte le contrôle d'accès, ADR #24) et un
+`Docs:Git:WorkingCopy` **absolu** (`C:\ProgramData\ApiDocsMcp\docs-checkout`) — absolu parce que le
+répertoire de travail d'un service est `C:\Windows\System32` (ADR #21) ; il doit être accessible en
+écriture au compte du service. Deux prérequis machine : `git` sur le PATH **machine**, avec des
+identifiants utilisables par le compte du service. Les variables d'environnement par service
+(`HKLM\SYSTEM\CurrentControlSet\Services\ApiDocsMcp\Environment`, p. ex. `Docs__Git__RepositoryUrl`)
+écrasent le fichier — sauf l'adresse d'écoute : `urls` en appsettings gagne sur `ASPNETCORE_URLS`,
+elle se change donc dans le fichier.
+
+Un échec de démarrage sort en code 1, que le SCM signale comme un démarrage raté — la cause exacte
+est dans l'Observateur d'événements (journal Application, source `ApiDocs MCP`). Mise à jour de la
+doc ensuite : `Invoke-RestMethod -Method Post http://localhost:5080/admin/reindex`, puis
+re-vérifier `docsRevision` sur `/health`.
+
 ---
 
 ## Hors périmètre — par décision
@@ -262,10 +305,11 @@ Ne pas implémenter, ne pas préparer le terrain :
   assumée : qui atteint le port lit toute la documentation, et le serveur ne peut ni tracer ni
   révoquer. Le jour où l'exposition change, le point d'accroche est unique — `app.MapMcp` +
   `RequireAuthorization`.
-- **Rechargement à chaud** (ADR #25) : l'index se reconstruit au démarrage, point. `RebuildAsync`
-  est déjà idempotent et publie par `Interlocked.Exchange` ; ajouter un déclencheur plus tard n'est
-  qu'un `BackgroundService` ou un endpoint.
-- Embeddings, reranking, tool `reindex`, persistance de l'index, Aspire.
+- **Rechargement automatique** (ADR #25, amendé par l'ADR #28) : le seul déclencheur de
+  reconstruction est `POST /admin/reindex` — une opération d'**administration**, appelée par le
+  pipeline de publication de la doc, volontairement hors de la surface MCP : pas de tool `reindex`,
+  pas de `FileSystemWatcher`, pas de polling git.
+- Embeddings, reranking, persistance de l'index, Aspire.
 
 Les deux premières sont des décisions coûtées, pas des oublis. Chacune a un seul point d'accroche —
 ne pas pré-construire pour elles.
